@@ -2,23 +2,18 @@
 #include <WiFi.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
-
-// --- Configuration ---
-// Replace with your network credentials
-#ifndef WIFI_SSID
-#define WIFI_SSID "YOUR_WIFI_SSID"
-#endif
-#ifndef WIFI_PASSWORD
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
-#endif
-
-#define SERIAL_BAUD_RATE 115200
-#define WS_PORT 80
-#define WS_ENDPOINT "/ws"
+#include "Config.h"
+#include "ConfigPortal.h"
 
 // --- Globals ---
-AsyncWebServer server(WS_PORT);
-AsyncWebSocket ws(WS_ENDPOINT);
+ConfigManager configManager;
+ConfigPortal* configPortal = nullptr;
+AsyncWebServer* server = nullptr;
+AsyncWebSocket* ws = nullptr;
+
+DeviceConfig currentConfig;
+bool inConfigMode = false;
+unsigned long configModeStartTime = 0;
 
 // --- WebSocket Event Handler ---
 void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
@@ -31,7 +26,6 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventTyp
       break;
     case WS_EVT_DATA:
       // Handle data received from WebSocket -> Send to Serial
-      // We assume text or binary data is just raw bytes to be forwarded
       if (len > 0) {
         Serial.write(data, len);
       }
@@ -42,55 +36,131 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventTyp
   }
 }
 
-void setup() {
-  // 1. Initialize Serial
-  Serial.begin(SERIAL_BAUD_RATE);
-  // Wait a bit for serial to stabilize
-  delay(1000);
-  Serial.println("\n\n--- ESP32 WebSocket Serial Bridge ---");
+void startConfigMode() {
+  Serial.println("\n=== Entering Configuration Mode ===");
+  inConfigMode = true;
+  configModeStartTime = millis();
+  
+  configPortal = new ConfigPortal(&configManager);
+  configPortal->start();
+}
 
-  // 2. Initialize WiFi
+void startNormalMode() {
+  Serial.println("\n=== Starting Normal Mode ===");
+  
+  // 加载配置
+  currentConfig = configManager.getConfig();
+  
+  // 初始化串口（使用配置的波特率）
+  Serial.end();
+  Serial.begin(currentConfig.serial_baud_rate);
+  delay(100);
+  
+  Serial.println("--- ESP32 WebSocket Serial Bridge ---");
+  Serial.printf("Serial Baud Rate: %d\n", currentConfig.serial_baud_rate);
+  
+  // 连接WiFi
   WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  Serial.print("Connecting to WiFi");
-  while (WiFi.status() != WL_CONNECTED) {
+  WiFi.begin(currentConfig.wifi_ssid, currentConfig.wifi_password);
+  Serial.printf("Connecting to WiFi: %s", currentConfig.wifi_ssid);
+  
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED && attempts < 30) {
     delay(500);
     Serial.print(".");
+    attempts++;
   }
-  Serial.println();
-  Serial.print("Connected! IP Address: ");
-  Serial.println(WiFi.localIP());
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println();
+    Serial.print("Connected! IP Address: ");
+    Serial.println(WiFi.localIP());
+    
+    // 初始化WebSocket服务器
+    ws = new AsyncWebSocket("/ws");
+    ws->onEvent(onWsEvent);
+    
+    server = new AsyncWebServer(80);
+    server->addHandler(ws);
+    server->begin();
+    
+    Serial.println("WebSocket server started");
+    Serial.printf("WebSocket URL: ws://%s/ws\n", WiFi.localIP().toString().c_str());
+    
+    if (strlen(currentConfig.websocket_url) > 0) {
+      Serial.printf("Remote WebSocket URL: %s\n", currentConfig.websocket_url);
+    }
+  } else {
+    Serial.println();
+    Serial.println("Failed to connect to WiFi!");
+    Serial.println("Entering configuration mode...");
+    startConfigMode();
+  }
+}
 
-  // 3. Initialize WebSocket
-  ws.onEvent(onWsEvent);
-  server.addHandler(&ws);
-
-  // 4. Start Server
-  server.begin();
-  Serial.println("WebSocket server started");
+void setup() {
+  // 初始化串口（使用默认波特率）
+  Serial.begin(115200);
+  delay(1000);
+  Serial.println("\n\n=== ESP32 WebSocket Serial Bridge ===");
+  Serial.println("Version: 2.0 with Web Configuration");
+  
+  // 加载配置
+  bool configLoaded = configManager.loadConfig();
+  
+  if (!configLoaded || !configManager.isConfigured()) {
+    Serial.println("No valid configuration found");
+    startConfigMode();
+  } else {
+    Serial.println("Configuration loaded successfully");
+    startNormalMode();
+  }
 }
 
 void loop() {
-  // 5. Handle Serial -> WebSocket
-  if (Serial.available()) {
-    // Read available bytes into a buffer
-    uint8_t buffer[256];
-    size_t count = 0;
+  if (inConfigMode) {
+    // 配置模式循环
+    if (configPortal && configPortal->isConfigSubmitted()) {
+      Serial.println("Configuration submitted, restarting...");
+      delay(5000);  // 等待5秒让用户看到成功消息
+      ESP.restart();
+    }
     
-    while (Serial.available() && count < sizeof(buffer)) {
-      buffer[count++] = Serial.read();
-      // Small delay to allow buffer to fill if more data is coming quickly
-      if (!Serial.available()) {
-        delay(1);
+    // 可选：超时检查（30分钟后自动退出配置模式）
+    if (millis() - configModeStartTime > 1800000) {
+      Serial.println("Configuration timeout, restarting...");
+      ESP.restart();
+    }
+  } else {
+    // 正常模式循环
+    if (WiFi.status() == WL_CONNECTED && ws) {
+      // 处理 Serial -> WebSocket
+      if (Serial.available()) {
+        uint8_t buffer[256];
+        size_t count = 0;
+        
+        while (Serial.available() && count < sizeof(buffer)) {
+          buffer[count++] = Serial.read();
+          if (!Serial.available()) {
+            delay(1);
+          }
+        }
+
+        if (count > 0) {
+          ws->binaryAll(buffer, count);
+        }
+      }
+
+      // 清理WebSocket客户端
+      ws->cleanupClients();
+    } else {
+      // WiFi断开，尝试重连
+      static unsigned long lastReconnectAttempt = 0;
+      if (millis() - lastReconnectAttempt > 10000) {
+        Serial.println("WiFi disconnected, attempting to reconnect...");
+        WiFi.reconnect();
+        lastReconnectAttempt = millis();
       }
     }
-
-    if (count > 0) {
-      // Broadcast to all connected WebSocket clients
-      ws.binaryAll(buffer, count);
-    }
   }
-
-  // Clean up WebSocket clients
-  ws.cleanupClients();
 }

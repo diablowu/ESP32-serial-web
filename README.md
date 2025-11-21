@@ -4,11 +4,13 @@
 
 ## 功能特性
 
-- ✅ WebSocket服务器（端口80，路径`/ws`）
-- ✅ 双向数据传输：WebSocket ↔ Serial
-- ✅ 支持文本和二进制数据
-- ✅ 多客户端连接支持
-- ✅ 基于PlatformIO构建
+- ✅ **Web配置界面** - 首次启动时通过AP模式配置设备（v2.0新增）
+- ✅ **WebSocket服务器** - 端口80，路径`/ws`
+- ✅ **双向数据传输** - WebSocket ↔ Serial
+- ✅ **多客户端连接支持**
+- ✅ **配置持久化** - 使用NVS存储配置
+- ✅ **自动WiFi重连**
+- ✅ **基于PlatformIO构建**
 
 ## 硬件要求
 
@@ -21,53 +23,54 @@
 - [PlatformIO](https://platformio.org/)
 - Python 3.x（PlatformIO依赖）
 
-## 配置
+## 快速开始
 
-### WiFi设置
-
-在烧录之前，需要修改 `src/main.cpp` 中的WiFi凭据：
-
-```cpp
-#define WIFI_SSID "YOUR_WIFI_SSID"
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
-```
-
-### 串口设置
-
-默认串口配置：
-- 波特率：115200
-- 端口：UART0（USB串口）
-
-如需修改，请编辑 `src/main.cpp` 中的 `SERIAL_BAUD_RATE` 定义。
-
-## 构建和烧录
-
-### 1. 构建项目
+### 1. 构建和烧录
 
 ```bash
 cd /home/master/works/ESP32-serial-web
-platformio run
-```
-
-### 2. 烧录到ESP32
-
-```bash
 platformio run --target upload
 ```
 
-### 3. 监控串口输出
+### 2. 首次配置
 
-```bash
-platformio device monitor
-```
+首次烧录后，ESP32会自动进入配置模式：
+
+1. **连接到ESP32的WiFi热点**
+   - SSID: `ESP32-Config`
+   - 无密码
+
+2. **打开配置页面**
+   - 在浏览器中访问: `http://192.168.4.1`
+
+3. **填写配置信息**
+   - WiFi名称（SSID）
+   - WiFi密码
+   - WebSocket URL（可选）
+   - 串口波特率（默认115200）
+
+4. **保存配置**
+   - 点击"保存配置"按钮
+   - ESP32将在5秒后自动重启并连接到配置的WiFi
+
+### 3. 正常使用
+
+配置完成后，ESP32会：
+- 自动连接到配置的WiFi网络
+- 启动WebSocket服务器
+- 使用配置的波特率初始化串口
+
+## 配置界面预览
+
+配置界面采用现代化设计，包含：
+- 渐变紫色背景
+- 响应式表单
+- 实时验证
+- 保存成功提示和倒计时
 
 ## 使用方法
 
-### 1. 连接到WiFi
-
-ESP32启动后会自动连接到配置的WiFi网络。通过串口监视器可以看到分配的IP地址。
-
-### 2. WebSocket连接
+### WebSocket连接
 
 使用WebSocket客户端连接到：
 
@@ -75,7 +78,9 @@ ESP32启动后会自动连接到配置的WiFi网络。通过串口监视器可�
 ws://<ESP32_IP_ADDRESS>/ws
 ```
 
-### 3. 测试连接
+### 测试工具
+
+项目包含一个精美的WebSocket测试工具 `websocket-test.html`，可以直接在浏览器中打开使用。
 
 #### 使用wscat（命令行工具）
 
@@ -88,69 +93,6 @@ wscat -c ws://192.168.1.100/ws
 
 # 发送消息
 > Hello ESP32
-```
-
-#### 使用HTML页面
-
-创建一个简单的HTML文件：
-
-```html
-<!DOCTYPE html>
-<html>
-<head>
-    <title>ESP32 WebSocket测试</title>
-</head>
-<body>
-    <h1>ESP32 WebSocket串口桥接测试</h1>
-    <div>
-        <button onclick="connect()">连接</button>
-        <button onclick="disconnect()">断开</button>
-    </div>
-    <div>
-        <input type="text" id="message" placeholder="输入消息">
-        <button onclick="send()">发送</button>
-    </div>
-    <div>
-        <h3>接收的消息：</h3>
-        <pre id="output"></pre>
-    </div>
-
-    <script>
-        let ws = null;
-        
-        function connect() {
-            ws = new WebSocket('ws://192.168.1.100/ws'); // 修改为你的ESP32 IP
-            
-            ws.onopen = () => {
-                document.getElementById('output').textContent += '已连接\n';
-            };
-            
-            ws.onmessage = (event) => {
-                document.getElementById('output').textContent += '收到: ' + event.data + '\n';
-            };
-            
-            ws.onclose = () => {
-                document.getElementById('output').textContent += '连接已关闭\n';
-            };
-        }
-        
-        function disconnect() {
-            if (ws) {
-                ws.close();
-            }
-        }
-        
-        function send() {
-            const msg = document.getElementById('message').value;
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(msg);
-                document.getElementById('output').textContent += '发送: ' + msg + '\n';
-                document.getElementById('message').value = '';
-            }
-        }
-    </script>
-</body>
-</html>
 ```
 
 ## 数据流
@@ -167,26 +109,56 @@ Web客户端 (WebSocket) ←→ ESP32 (WebSocket Server) ←→ 串口设备
 ```
 ESP32-serial-web/
 ├── src/
-│   └── main.cpp           # 主程序代码
-├── include/               # 头文件目录
-├── lib/                   # 本地库目录
-├── test/                  # 测试代码
-├── platformio.ini         # PlatformIO配置
-└── README.md             # 本文档
+│   ├── main.cpp              # 主程序
+│   ├── Config.cpp            # 配置管理实现
+│   └── ConfigPortal.cpp      # 配置门户实现
+├── include/
+│   ├── Config.h              # 配置管理头文件
+│   └── ConfigPortal.h        # 配置门户头文件
+├── lib/                      # 本地库目录
+├── test/                     # 测试代码
+├── platformio.ini            # PlatformIO配置
+├── websocket-test.html       # WebSocket测试工具
+└── README.md                 # 本文档
 ```
 
 ## 依赖库
 
 - `esphome/AsyncTCP-esphome` - 异步TCP库
 - `ottowinter/ESPAsyncWebServer-esphome` - 异步Web服务器库
+- `Preferences` - ESP32内置NVS存储库
+
+## 配置管理
+
+### 重置配置
+
+如果需要重新配置设备，可以：
+
+1. **通过代码重置**：在 `setup()` 中调用 `configManager.resetConfig()`
+2. **重新烧录固件**：会保留配置，除非手动清除
+
+### 配置存储
+
+配置保存在ESP32的NVS（非易失性存储）中，包括：
+- WiFi SSID和密码
+- WebSocket URL
+- 串口波特率
+- 配置状态标志
 
 ## 故障排除
+
+### 无法进入配置模式
+
+1. 确保是首次烧录或配置已被清除
+2. 检查串口监视器输出
+3. 手动清除NVS分区
 
 ### 无法连接到WiFi
 
 1. 检查WiFi凭据是否正确
 2. 确保ESP32在WiFi信号范围内
-3. 检查路由器是否允许新设备连接
+3. 查看串口输出的错误信息
+4. 设备会在WiFi连接失败后自动进入配置模式
 
 ### WebSocket连接失败
 
@@ -200,9 +172,43 @@ ESP32-serial-web/
 2. 确认串口连接是否正确
 3. 增加缓冲区大小（如果需要）
 
+## 高级功能
+
+### 远程WebSocket URL
+
+配置中的"WebSocket URL"字段可用于：
+- 记录远程服务器地址
+- 未来扩展：ESP32作为WebSocket客户端连接到远程服务器
+
+### 自动重连
+
+ESP32会自动检测WiFi断开并尝试重连，每10秒尝试一次。
+
+### 配置超时
+
+配置模式会在30分钟后自动超时并重启设备，防止设备长时间停留在配置模式。
+
+## 版本历史
+
+### v2.0 (2025-11-21)
+- ✨ 新增Web配置界面
+- ✨ 支持AP模式配置
+- ✨ 配置持久化存储
+- ✨ 自动WiFi重连
+- ✨ 可配置串口波特率
+
+### v1.0 (2025-11-21)
+- 🎉 初始版本
+- ✅ WebSocket串口桥接
+- ✅ 基础功能实现
+
 ## 协议支持
 
 本项目实现的是透明串口桥接，不对数据进行解析。如果需要支持特定的协议（如Beacon命令协议），可以在ESP32端添加协议解析逻辑。
+
+## GitHub仓库
+
+https://github.com/diablowu/ESP32-serial-web
 
 ## 许可证
 
