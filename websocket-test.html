@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 WebSocket 串口测试工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 28px;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .connection-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-connect {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-connect:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-connect:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-disconnect {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-disconnect:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
+
+        .btn-send {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-send:hover {
+            background: #229954;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
+        }
+
+        .btn-clear {
+            background: #95a5a6;
+            color: white;
+            flex: 0.3;
+        }
+
+        .btn-clear:hover {
+            background: #7f8c8d;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .status.disconnected {
+            background: #fee;
+            color: #c00;
+        }
+
+        .status.connected {
+            background: #efe;
+            color: #0a0;
+        }
+
+        .status.connecting {
+            background: #ffeaa7;
+            color: #d63031;
+        }
+
+        .message-section {
+            margin-top: 20px;
+        }
+
+        .send-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .send-group input {
+            flex: 1;
+        }
+
+        .send-group button {
+            flex: 0.3;
+        }
+
+        .output-section {
+            background: #1e1e1e;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .output-header h3 {
+            color: #fff;
+            font-size: 16px;
+        }
+
+        #output {
+            background: #2d2d2d;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            padding: 15px;
+            border-radius: 8px;
+            min-height: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.5;
+        }
+
+        #output::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #output::-webkit-scrollbar-track {
+            background: #1e1e1e;
+            border-radius: 4px;
+        }
+
+        #output::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+
+        .timestamp {
+            color: #888;
+            margin-right: 8px;
+        }
+
+        .msg-sent {
+            color: #3498db;
+        }
+
+        .msg-received {
+            color: #2ecc71;
+        }
+
+        .msg-system {
+            color: #f39c12;
+        }
+
+        .msg-error {
+            color: #e74c3c;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .connecting-indicator {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 ESP32 WebSocket 串口测试工具</h1>
+        <p class="subtitle">通过WebSocket与ESP32串口设备进行实时通信</p>
+
+        <div class="connection-section">
+            <div class="input-group">
+                <label for="wsUrl">WebSocket 地址</label>
+                <input type="text" id="wsUrl" placeholder="ws://192.168.1.100/ws" value="ws://192.168.1.100/ws">
+            </div>
+            
+            <div id="statusIndicator" class="status disconnected">● 未连接</div>
+            
+            <div class="button-group">
+                <button class="btn-connect" onclick="connect()" id="connectBtn">连接</button>
+                <button class="btn-disconnect" onclick="disconnect()" id="disconnectBtn" disabled>断开连接</button>
+            </div>
+        </div>
+
+        <div class="message-section">
+            <div class="send-group">
+                <input type="text" id="message" placeholder="输入要发送的消息..." onkeypress="handleKeyPress(event)">
+                <button class="btn-send" onclick="send()" id="sendBtn" disabled>发送</button>
+            </div>
+        </div>
+
+        <div class="output-section">
+            <div class="output-header">
+                <h3>📡 通信日志</h3>
+                <button class="btn-clear" onclick="clearOutput()">清空</button>
+            </div>
+            <div id="output"></div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        const output = document.getElementById('output');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const sendBtn = document.getElementById('sendBtn');
+        const messageInput = document.getElementById('message');
+
+        function getTimestamp() {
+            const now = new Date();
+            return now.toLocaleTimeString('zh-CN', { hour12: false });
+        }
+
+        function log(message, type = 'system') {
+            const timestamp = getTimestamp();
+            const line = document.createElement('div');
+            line.innerHTML = `<span class="timestamp">[${timestamp}]</span><span class="msg-${type}">${message}</span>`;
+            output.appendChild(line);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function updateStatus(status) {
+            statusIndicator.className = 'status ' + status;
+            switch(status) {
+                case 'connected':
+                    statusIndicator.textContent = '● 已连接';
+                    connectBtn.disabled = true;
+                    disconnectBtn.disabled = false;
+                    sendBtn.disabled = false;
+                    break;
+                case 'disconnected':
+                    statusIndicator.textContent = '● 未连接';
+                    connectBtn.disabled = false;
+                    disconnectBtn.disabled = true;
+                    sendBtn.disabled = true;
+                    break;
+                case 'connecting':
+                    statusIndicator.textContent = '● 连接中...';
+                    statusIndicator.classList.add('connecting-indicator');
+                    connectBtn.disabled = true;
+                    disconnectBtn.disabled = true;
+                    sendBtn.disabled = true;
+                    break;
+            }
+        }
+
+        function connect() {
+            const url = document.getElementById('wsUrl').value.trim();
+            if (!url) {
+                log('错误: 请输入WebSocket地址', 'error');
+                return;
+            }
+
+            updateStatus('connecting');
+            log('正在连接到: ' + url, 'system');
+
+            try {
+                ws = new WebSocket(url);
+
+                ws.onopen = () => {
+                    updateStatus('connected');
+                    log('✓ WebSocket连接成功!', 'system');
+                };
+
+                ws.onmessage = (event) => {
+                    const data = event.data;
+                    log('← 收到: ' + data, 'received');
+                };
+
+                ws.onerror = (error) => {
+                    log('✗ 连接错误', 'error');
+                    console.error('WebSocket error:', error);
+                };
+
+                ws.onclose = () => {
+                    updateStatus('disconnected');
+                    log('✗ 连接已关闭', 'system');
+                    ws = null;
+                };
+            } catch (error) {
+                updateStatus('disconnected');
+                log('✗ 连接失败: ' + error.message, 'error');
+            }
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                log('主动断开连接', 'system');
+            }
+        }
+
+        function send() {
+            const msg = messageInput.value;
+            if (!msg) {
+                log('错误: 消息不能为空', 'error');
+                return;
+            }
+
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(msg);
+                log('→ 发送: ' + msg, 'sent');
+                messageInput.value = '';
+                messageInput.focus();
+            } else {
+                log('错误: WebSocket未连接', 'error');
+            }
+        }
+
+        function clearOutput() {
+            output.innerHTML = '';
+            log('日志已清空', 'system');
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                send();
+            }
+        }
+
+        // 初始化日志
+        log('欢迎使用ESP32 WebSocket串口测试工具', 'system');
+        log('请输入ESP32的IP地址并点击连接', 'system');
+    </script>
+</body>
+</html>
