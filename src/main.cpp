@@ -134,20 +134,31 @@ void loop() {
   } else {
     // 正常模式循环
     if (WiFi.status() == WL_CONNECTED && ws) {
-      // 处理 Serial -> WebSocket
-      if (Serial.available()) {
-        uint8_t buffer[256];
-        size_t count = 0;
-        
-        while (Serial.available() && count < sizeof(buffer)) {
-          buffer[count++] = Serial.read();
-          if (!Serial.available()) {
-            delay(1);
-          }
+      if (currentConfig.simulate_serial) {
+        // 模拟数据生成
+        static unsigned long lastSimTime = 0;
+        if (millis() - lastSimTime > 1000) {
+          lastSimTime = millis();
+          String simData = "Simulated Data: " + String(random(0, 1000)) + "\n";
+          ws->textAll(simData);
+          Serial.print("Generated: " + simData);
         }
+      } else {
+        // 处理 Serial -> WebSocket
+        if (Serial.available()) {
+          uint8_t buffer[256];
+          size_t count = 0;
+          
+          while (Serial.available() && count < sizeof(buffer)) {
+            buffer[count++] = Serial.read();
+            if (!Serial.available()) {
+              delay(1);
+            }
+          }
 
-        if (count > 0) {
-          ws->binaryAll(buffer, count);
+          if (count > 0) {
+            ws->binaryAll(buffer, count);
+          }
         }
       }
 

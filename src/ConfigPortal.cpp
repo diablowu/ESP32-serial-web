@@ -211,6 +211,16 @@ String ConfigPortal::generateConfigPage() {
                        required min="9600" max="921600">
                 <div class="hint">常用值: 9600, 115200, 921600</div>
             </div>
+
+            <div class="form-group">
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                    <input type="checkbox" id="simulate_serial" name="simulate_serial" 
+                           value="true" )rawliteral" + String(currentConfig.simulate_serial ? "checked" : "") + R"rawliteral(
+                           style="width: auto; margin-right: 10px;">
+                    启用模拟串口数据
+                </label>
+                <div class="hint">开启后将生成随机数据发送到WebSocket，不读取实际串口</div>
+            </div>
             
             <button type="submit">💾 保存配置</button>
         </form>
@@ -277,6 +287,12 @@ void ConfigPortal::handleConfigSubmit(AsyncWebServerRequest* request) {
     
     if (request->hasParam("baud_rate", true)) {
         newConfig.serial_baud_rate = request->getParam("baud_rate", true)->value().toInt();
+    }
+
+    if (request->hasParam("simulate_serial", true)) {
+        newConfig.simulate_serial = request->getParam("simulate_serial", true)->value() == "true";
+    } else {
+        newConfig.simulate_serial = false;
     }
     
     newConfig.configured = true;

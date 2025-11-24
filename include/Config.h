@@ -9,6 +9,7 @@ struct DeviceConfig {
     char wifi_password[64];
     char websocket_url[128];
     uint32_t serial_baud_rate;
+    bool simulate_serial; // 是否模拟串口数据
     bool configured;  // 标记是否已配置
 };
 

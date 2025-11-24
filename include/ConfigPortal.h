@@ -43,7 +43,7 @@ private:
     String generateConfigPage();
     
     // 处理配置提交
-    void handleConfigSubmit(AsyncWebServerRequest* request);
+    void handleConfigSubmit(AsyndcWebServerRequest* request);
 };
 
 #endif // CONFIG_PORTAL_H

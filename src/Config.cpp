@@ -13,6 +13,7 @@ DeviceConfig ConfigManager::getDefaultConfig() {
     strcpy(defaultConfig.wifi_password, "");
     strcpy(defaultConfig.websocket_url, "ws://192.168.1.100/ws");
     defaultConfig.serial_baud_rate = 115200;
+    defaultConfig.simulate_serial = false;
     defaultConfig.configured = false;
     return defaultConfig;
 }
@@ -39,6 +40,7 @@ bool ConfigManager::loadConfig() {
     preferences.getString("wifi_pwd", config.wifi_password, sizeof(config.wifi_password));
     preferences.getString("ws_url", config.websocket_url, sizeof(config.websocket_url));
     config.serial_baud_rate = preferences.getUInt("baud_rate", 115200);
+    config.simulate_serial = preferences.getBool("sim_serial", false);
     
     preferences.end();
     
@@ -46,6 +48,7 @@ bool ConfigManager::loadConfig() {
     Serial.printf("WiFi SSID: %s\n", config.wifi_ssid);
     Serial.printf("WebSocket URL: %s\n", config.websocket_url);
     Serial.printf("Baud Rate: %d\n", config.serial_baud_rate);
+    Serial.printf("Simulate Serial: %s\n", config.simulate_serial ? "Yes" : "No");
     
     return true;
 }
@@ -63,6 +66,7 @@ bool ConfigManager::saveConfig(const DeviceConfig& newConfig) {
     preferences.putString("wifi_pwd", newConfig.wifi_password);
     preferences.putString("ws_url", newConfig.websocket_url);
     preferences.putUInt("baud_rate", newConfig.serial_baud_rate);
+    preferences.putBool("sim_serial", newConfig.simulate_serial);
     preferences.putBool("configured", true);
     
     preferences.end();
