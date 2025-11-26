@@ -2,7 +2,11 @@
 #define CONFIG_PORTAL_H
 
 #include <Arduino.h>
-#include <WiFi.h>
+#if defined(ESP8266)
+  #include <ESP8266WiFi.h>
+#elif defined(ESP32)
+  #include <WiFi.h>
+#endif
 #include <ESPAsyncWebServer.h>
 #include "Config.h"
 
@@ -43,7 +47,7 @@ private:
     String generateConfigPage();
     
     // 处理配置提交
-    void handleConfigSubmit(AsyndcWebServerRequest* request);
+    void handleConfigSubmit(AsyncWebServerRequest* request);
 };
 
 #endif // CONFIG_PORTAL_H

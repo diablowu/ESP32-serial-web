@@ -2,6 +2,7 @@
 #include <Preferences.h>
 
 const char* ConfigManager::NAMESPACE = "device_config";
+const char* ConfigManager::CONFIG_VERSION = "v1.0"; // Change this to force config reset
 
 ConfigManager::ConfigManager() {
     config = getDefaultConfig();
@@ -21,8 +22,20 @@ DeviceConfig ConfigManager::getDefaultConfig() {
 bool ConfigManager::loadConfig() {
     Preferences preferences;
     
-    if (!preferences.begin(NAMESPACE, true)) {  // 只读模式
+    // Open in RW mode to allow clearing if version mismatch
+    if (!preferences.begin(NAMESPACE, false)) {
         Serial.println("Failed to open preferences");
+        return false;
+    }
+    
+    // Check config version
+    String storedVersion = preferences.getString("version", "");
+    if (storedVersion != CONFIG_VERSION) {
+        Serial.printf("Config version mismatch (Stored: %s, Current: %s). Resetting config.\n", storedVersion.c_str(), CONFIG_VERSION);
+        preferences.clear();
+        preferences.putString("version", CONFIG_VERSION);
+        preferences.end();
+        config = getDefaultConfig();
         return false;
     }
     
@@ -62,6 +75,7 @@ bool ConfigManager::saveConfig(const DeviceConfig& newConfig) {
     }
     
     // 保存配置
+    preferences.putString("version", CONFIG_VERSION); // Ensure version is saved
     preferences.putString("wifi_ssid", newConfig.wifi_ssid);
     preferences.putString("wifi_pwd", newConfig.wifi_password);
     preferences.putString("ws_url", newConfig.websocket_url);
@@ -92,6 +106,11 @@ void ConfigManager::resetConfig() {
     
     if (preferences.begin(NAMESPACE, false)) {
         preferences.clear();
+        preferences.putString("version", CONFIG_VERSION); // Keep version after reset? Or clear it too? 
+        // If we clear it, next boot will see mismatch (empty vs v1.0) and clear again (no harm).
+        // But better to set it so next boot doesn't complain if we just want to reset settings but keep "firmware compatibility".
+        // However, resetConfig usually means "factory reset".
+        // Let's just clear.
         preferences.end();
         Serial.println("Configuration reset");
     }

@@ -39,6 +39,7 @@ public:
 private:
     DeviceConfig config;
     static const char* NAMESPACE;
+    static const char* CONFIG_VERSION;
 };
 
 #endif // CONFIG_H

@@ -1,0 +1,70 @@
+Processing esp8266 (platform: espressif8266; board: nodemcuv2; framework: arduino)
+--------------------------------------------------------------------------------
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif8266/nodemcuv2.html
+PLATFORM: Espressif 8266 (4.2.1) > NodeMCU 1.0 (ESP-12E Module)
+HARDWARE: ESP8266 80MHz, 80KB RAM, 4MB Flash
+PACKAGES: 
+ - framework-arduinoespressif8266 @ 3.30102.0 (3.1.2) 
+ - tool-esptool @ 1.413.0 (4.13) 
+ - tool-esptoolpy @ 1.30000.201119 (3.0.0) 
+ - toolchain-xtensa @ 2.100300.220621 (10.3.0)
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 40 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- ESPAsyncTCP-esphome @ 2.0.0
+|-- ESPAsyncWebServer-esphome @ 3.4.0
+|-- Preferences @ 2.2.2
+|-- ESP8266WiFi @ 1.0
+Building in release mode
+Compiling .pio/build/esp8266/src/ConfigPortal.cpp.o
+Compiling .pio/build/esp8266/src/main.cpp.o
+Compiling .pio/build/esp8266/lib39d/ESP8266WiFi/WiFiUdp.cpp.o
+Compiling .pio/build/esp8266/lib39d/ESP8266WiFi/enable_wifi_at_boot_time.cpp.o
+Compiling .pio/build/esp8266/lib8d9/ESPAsyncWebServer-esphome/AsyncEventSource.cpp.o
+Compiling .pio/build/esp8266/lib8d9/ESPAsyncWebServer-esphome/AsyncWebSocket.cpp.o
+Compiling .pio/build/esp8266/lib8d9/ESPAsyncWebServer-esphome/WebAuthentication.cpp.o
+Compiling .pio/build/esp8266/lib8d9/ESPAsyncWebServer-esphome/WebHandlers.cpp.o
+Compiling .pio/build/esp8266/lib8d9/ESPAsyncWebServer-esphome/WebRequest.cpp.o
+In file included from src/ConfigPortal.cpp:1:
+include/ConfigPortal.h:50:29: error: 'AsyndcWebServerRequest' has not been declared
+   50 |     void handleConfigSubmit(AsyndcWebServerRequest* request);
+      |                             ^~~~~~~~~~~~~~~~~~~~~~
+src/ConfigPortal.cpp: In lambda function:
+src/ConfigPortal.cpp:54:28: error: cannot convert 'AsyncWebServerRequest*' to 'int*'
+   54 |         handleConfigSubmit(request);
+      |                            ^~~~~~~
+      |                            |
+      |                            AsyncWebServerRequest*
+In file included from src/ConfigPortal.cpp:1:
+include/ConfigPortal.h:50:53: note:   initializing argument 1 of 'void ConfigPortal::handleConfigSubmit(int*)'
+   50 |     void handleConfigSubmit(AsyndcWebServerRequest* request);
+      |                             ~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~
+src/ConfigPortal.cpp: At global scope:
+src/ConfigPortal.cpp:267:6: error: no declaration matches 'void ConfigPortal::handleConfigSubmit(AsyncWebServerRequest*)'
+  267 | void ConfigPortal::handleConfigSubmit(AsyncWebServerRequest* request) {
+      |      ^~~~~~~~~~~~
+In file included from src/ConfigPortal.cpp:1:
+include/ConfigPortal.h:50:10: note: candidate is: 'void ConfigPortal::handleConfigSubmit(int*)'
+   50 |     void handleConfigSubmit(AsyndcWebServerRequest* request);
+      |          ^~~~~~~~~~~~~~~~~~
+include/ConfigPortal.h:13:7: note: 'class ConfigPortal' defined here
+   13 | class ConfigPortal {
+      |       ^~~~~~~~~~~~
+Compiling .pio/build/esp8266/lib8d9/ESPAsyncWebServer-esphome/WebResponses.cpp.o
+In file included from src/main.cpp:11:
+include/ConfigPortal.h:50:29: error: 'AsyndcWebServerRequest' has not been declared
+   50 |     void handleConfigSubmit(AsyndcWebServerRequest* request);
+      |                             ^~~~~~~~~~~~~~~~~~~~~~
+*** [.pio/build/esp8266/src/ConfigPortal.cpp.o] Error 1
+Archiving .pio/build/esp8266/lib39d/libESP8266WiFi.a
+Indexing .pio/build/esp8266/lib39d/libESP8266WiFi.a
+*** [.pio/build/esp8266/src/main.cpp.o] Error 1
+========================== [FAILED] Took 7.19 seconds ==========================
+
+Environment    Status    Duration
+-------------  --------  ------------
+esp8266        FAILED    00:00:07.193
+==================== 1 failed, 0 succeeded in 00:00:07.193 ====================

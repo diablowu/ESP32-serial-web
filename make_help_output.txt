@@ -1,0 +1,18 @@
+Makefile for PlatformIO Project
+
+Usage:
+  make           - Build the project (default: esp32dev)
+  make esp32     - Build for ESP32
+  make esp8266   - Build for ESP8266
+  make clean     - Clean build artifacts
+  make upload    - Upload firmware to device (default: esp32dev)
+  make upload-esp32   - Upload to ESP32
+  make upload-esp8266 - Upload to ESP8266
+  make monitor   - Start serial monitor
+  make run       - Upload and then monitor
+  make erase     - Erase flash memory
+  make package   - Build and copy firmware to 'release' folder
+  make menuconfig- Run menuconfig
+
+Variables:
+  ENV            - PlatformIO environment (default: esp32dev)
